@@ -9,7 +9,9 @@ exports.activate = async function() {
     console.log("Activating Tinyfier extension...");
 
     // STEP 1: Check if Node/NPM is installed
-    dependencies.npm = await checkCommand("npm", ["--version"]);
+    const npmCheck = await checkCommand("npm", ["--version"]);
+    dependencies.npm = npmCheck.success;
+
     if (!dependencies.npm) {
         showNotification(
             "dependency-error",
@@ -19,14 +21,16 @@ exports.activate = async function() {
         );
         console.error("NPM not found. Aborting activation.");
         return;
-    } else {
-        console.log("Node.js and NPM are installed.");
     }
+
+    console.log(`NPM version ${npmCheck.version} detected.`);
 
     // STEP 2: Check for Terser (if enabled)
     const terserEnabled = nova.config.get("terser.enabled", "boolean") ?? true;
     if (terserEnabled) {
-        dependencies.terser = await checkCommand("npx", ["terser", "--version"]);
+        const terserCheck = await checkCommand("npx", ["terser", "--version"]);
+        dependencies.terser = terserCheck.success;
+
         if (!dependencies.terser) {
             showNotification(
                 "dependency-error",
@@ -36,14 +40,16 @@ exports.activate = async function() {
             );
             console.error("Terser not found but is enabled in settings.");
         } else {
-            console.log("Terser is installed and enabled.");
+            console.log(`Terser version ${terserCheck.version} is installed and enabled.`);
         }
     }
 
     // STEP 3: Check for Lightning CSS (if enabled)
     const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
     if (lightningEnabled) {
-        dependencies.lightningcss = await checkCommand("npx", ["lightningcss", "--version"]);
+        const lightningCheck = await checkCommand("npx", ["lightningcss", "--version"]);
+        dependencies.lightningcss = lightningCheck.success;
+
         if (!dependencies.lightningcss) {
             showNotification(
                 "dependency-error",
@@ -53,7 +59,7 @@ exports.activate = async function() {
             );
             console.error("Lightning CSS not found but is enabled in settings.");
         } else {
-            console.log("Lightning CSS is installed and enabled.");
+            console.log(`Lightning CSS version ${lightningCheck.version} is installed and enabled.`);
         }
     }
 
@@ -74,16 +80,28 @@ function formatBytes(bytes) {
     return `${kb.toFixed(1)} KB`;
 }
 
-// Check if a command-line tool is available
+// Check if a command-line tool is available and return its version
 function checkCommand(command, args = []) {
     return new Promise(resolve => {
         const process = new Process("/usr/bin/env", {
             args: [command, ...args],
-            stdio: "ignore"
+            stdio: "pipe"
         });
+
+        let output = "";
+
+        process.onStdout((line) => {
+            output += line.trim();
+        });
+
         process.onDidExit(status => {
-            resolve(status === 0);
+            if (status === 0) {
+                resolve({ success: true, version: output });
+            } else {
+                resolve({ success: false, version: null });
+            }
         });
+
         process.start();
     });
 }
