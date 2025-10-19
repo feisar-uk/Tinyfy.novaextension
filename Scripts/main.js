@@ -172,7 +172,7 @@ function handleSave(editor) {
             minifyJS(filePath);
         }
         // Handle CSS files
-        else if (syntax === "css" || syntax === "scss" || syntax === "less") {
+        else if (syntax === "css") {
             const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
             if (!lightningEnabled) {
                 console.log("Lightning CSS is disabled in settings.");
