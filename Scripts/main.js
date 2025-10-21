@@ -9,7 +9,7 @@ exports.activate = async function() {
     console.log("Activating Tinyfier extension...");
 
     // STEP 1: Check if Node/NPM is installed
-    const npmCheck = await checkCommand("npm", ["--version"]);
+    const npmCheck = await checkCommand("npm", ["-v"]);
     dependencies.npm = npmCheck.success;
 
     if (!dependencies.npm) {
@@ -17,7 +17,7 @@ exports.activate = async function() {
             "dependency-error",
             "NPM Not Found",
             "Node.js and NPM are required. Please install them to use this extension.",
-            "https://nodejs.org/"
+            "https://nodejs.org/en/download"
         );
         console.error("NPM not found. Aborting activation.");
         return;
@@ -28,38 +28,42 @@ exports.activate = async function() {
     // STEP 2: Check for Terser (if enabled)
     const terserEnabled = nova.config.get("terser.enabled", "boolean") ?? true;
     if (terserEnabled) {
-        const terserCheck = await checkCommand("npx", ["terser", "--version"]);
+        const terserCheck = await checkCommand("npm", ["list", "-g", "terser", "--depth=0"]);
         dependencies.terser = terserCheck.success;
 
         if (!dependencies.terser) {
-            showNotification(
-                "dependency-error",
-                "Terser Not Found",
-                "Terser could not be found. Install it with: npm install -g terser",
-                "https://www.npmjs.com/package/terser"
-            );
             console.error("Terser not found but is enabled in settings.");
+            showNotification(
+                "dependency-error-terser",
+                "Terser Not Found",
+                "Please install it with:\nnpm install terser -g",
+                "https://github.com/terser/terser?tab=readme-ov-file#install"
+            );
         } else {
-            console.log(`Terser version ${terserCheck.version} is installed and enabled.`);
+            // Get the actual version with a separate command
+            const versionCheck = await checkCommand("terser", ["--version"]);
+            console.log(`Terser version ${versionCheck.version} is installed and enabled.`);
         }
     }
 
     // STEP 3: Check for Lightning CSS (if enabled)
     const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
     if (lightningEnabled) {
-        const lightningCheck = await checkCommand("npx", ["lightningcss", "--version"]);
+        const lightningCheck = await checkCommand("npm", ["list", "-g", "lightningcss-cli", "--depth=0"]);
         dependencies.lightningcss = lightningCheck.success;
 
         if (!dependencies.lightningcss) {
-            showNotification(
-                "dependency-error",
-                "Lightning CSS Not Found",
-                "Lightning CSS could not be found. Install it with: npm install -g lightningcss-cli",
-                "https://www.npmjs.com/package/lightningcss-cli"
-            );
             console.error("Lightning CSS not found but is enabled in settings.");
+            showNotification(
+                "dependency-error-lightningcss",
+                "Lightning CSS Not Found",
+                "Please install it with: \nnpm install lightningcss-cli -g",
+                "https://lightningcss.dev/docs.html#from-the-cli"
+            );
         } else {
-            console.log(`Lightning CSS version ${lightningCheck.version} is installed and enabled.`);
+            // Get the actual version with a separate command
+            const versionCheck = await checkCommand("lightningcss", ["--version"]);
+            console.log(`Lightning CSS version ${versionCheck.version} is installed and enabled.`);
         }
     }
 
@@ -197,12 +201,6 @@ function handleSave(editor) {
 async function minifyJS(inputPath) {
     // Check if Terser is actually installed
     if (!dependencies.terser) {
-        showNotification(
-            "tool-not-installed",
-            "Terser Not Installed",
-            "Cannot minify JavaScript. Please install Terser: npm install -g terser",
-            "https://www.npmjs.com/package/terser"
-        );
         console.error("Attempted to minify JS but Terser is not installed.");
         return;
     }
@@ -245,7 +243,7 @@ async function minifyJS(inputPath) {
 
         showNotification(
             "minify-success",
-            "Terser: Minified Successfully",
+            "JS Minified Successfully",
             `${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`
         );
         console.log(`${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`);
@@ -253,7 +251,7 @@ async function minifyJS(inputPath) {
     } catch (error) {
         showNotification(
             "minify-error",
-            "Terser: Minification Failed",
+            "JS Minification Failed",
             error.message
         );
         console.error("JS Minification failed:", error);
@@ -264,12 +262,6 @@ async function minifyJS(inputPath) {
 async function minifyCSS(inputPath) {
     // Check if Lightning CSS is actually installed
     if (!dependencies.lightningcss) {
-        showNotification(
-            "tool-not-installed",
-            "Lightning CSS Not Installed",
-            "Cannot minify CSS. Please install Lightning CSS: npm install -g lightningcss-cli",
-            "https://www.npmjs.com/package/lightningcss-cli"
-        );
         console.error("Attempted to minify CSS but Lightning CSS is not installed.");
         return;
     }
@@ -320,7 +312,7 @@ async function minifyCSS(inputPath) {
 
         showNotification(
             "minify-success",
-            "Lightning CSS: Minified Successfully",
+            "CSS Minified Successfully",
             `${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`
         );
         console.log(`${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`);
@@ -328,7 +320,7 @@ async function minifyCSS(inputPath) {
     } catch (error) {
         showNotification(
             "minify-error",
-            "Lightning CSS: Minification Failed",
+            "CSS Minification Failed",
             error.message
         );
         console.error("CSS Minification failed:", error);
