@@ -1,78 +1,67 @@
+# Tinyfy Extension for Nova
 
+**Tinyfy** is an extension for the [Nova](https://nova.app) code editor from [Panic](https://panic.com), that  automatically minifies local `.js` and `.css` files on save, using [Terser](https://terser.org) for JS minification and [Lightning CSS](https://lightningcss.dev) for CSS minification.
 
-**Tinyfy** automatically minimizes local `.js` and `.css` files on save.
+Terser and Lightning CSS are both up-to-date and supported CLI tools. Alternatives such as `uglifycss`, `csso` and `uglify-js` are deprecated.
 
-For JS minification, it uses [Terser](https://github.com/terser/terser) - which is a maintained, ES6+ supporting fork of `uglify-es` and `uglify-js`.
-
-For CSS minification, it uses [Lightning CSS](https://github.com/parcel-bundler/lightningcss) - which is an extremely fast CSS minifier written in Rust.
-
+Tested with Nova 13.3 on macOS Sequoia 15.7.1
 
 ## Features
 
-- Checks for Node, Terser and Lightning CSS on activation and prompts to install if necessary
-- Notifies user of time taken and bytes saved
-- Extensive logging for all functions
-- Notifies user if file is remote that minification is skipped.
+- Automatically checks for Node, Terser, and Lightning CSS on activation, and prompts for installation if needed
+- Shows the time taken and how many bytes were saved during minification
+- Alerts you when minification is skipped for remote files
+- Lets you disable CSS and JS minification separately
+- Allows you to customise the minified file extension (e.g. `.min.js`  or `.min.css`)
+- Skips files that are already minified
+- Provides detailed logging in the Extension Console for every action
 
-<!--
-🎈 It can also be helpful to include a screenshot or GIF showing your extension in action:
--->
+## Screenshot
 
-![](https://nova.app/images/en/dark/editor.png)
+![](https://www.feisar.uk/tinyfy/tinyfy.png)
 
 ## Requirements
 
-<!--
-🎈 If your extension depends on external processes or tools that users will need to have, it's helpful to list those and provide links to their installers:
--->
-
 Tinyfy requires some additional tools to be installed on your Mac:
 
-- [Node.js 8.2.0](https://nodejs.org) and NPM 5.2.0 or newer
+- Current version of [Node.js](https://nodejs.org/en/download) and NPM
 - [Terser](https://github.com/terser/terser) to minify JavaScript
-- [Lightning CSS](https://github.com/parcel-bundler/lightningcss) to minify CSS
+- [Lightning CSS](https://github.com/parcel-bundler/lightningcss) CLI package to minify CSS
 
-Installing Lightning CSS standalone CLI
+## Installation
 
-npm install --save-dev lightningcss-cli
+### Installing Node.js and NPM
 
-<!--
-✨ Providing tips, tricks, or other guides for installing or configuring external dependencies can go a long way toward helping your users have a good setup experience:
--->
+Follow your preferred installation method here: [https://nodejs.org/en/download](https://nodejs.org/en/download)
 
-> To install the current stable version of Node, click the "Recommended for Most Users" button to begin the download. When that completes, double-click the **.pkg** installer to begin installation.
+### Installing Lightning CSS standalone CLI
 
-## Usage
+From the command line, enter:
 
-<!--
-🎈 If users will interact with your extension manually, describe those options:
--->
+`npm install lightningcss-cli -g`
 
-To run Tinyfy:
+### Installing Terser
 
-- Select the **Editor → Tinyfy** menu item; or
-- Open the command palette and type `Tinyfy`
+From the command line, enter:
 
-<!--
-🎈 Alternatively, if your extension runs automatically (as in the case of a validator), consider showing users what they can expect to see:
--->
+`npm install terser -g`
 
-Tinyfy runs any time you open a local project, automatically lints all open files, then reports errors and warnings in Nova's **Issues** sidebar and the editor gutter:
+### Installing Tinify
 
-![](https://nova.app/images/en/light/tools/sidebars.png)
+- Relaunch Nova after installing Node, Terser and Lightning CSS
+- In Nova, navigate to **Extensions > Extension Library...**
+- Search for "Tinyfy"
+- Click the **Install** button
+
+## Using Tinyfy
+
+When Tinyfy is active, it automatically minifies local `.js` and `.css` files on save, adding a `.min` prefix to the filename extension.
+To avoid conflicts, it’s best to disable any other Nova extensions that also handle minification.
+You can tweak the file extension or turn off minification entirely in the Extension settings.
 
 ### Configuration
 
-<!--
-🎈 If your extension offers global- or workspace-scoped preferences, consider pointing users toward those settings. For example:
--->
+To configure global settings, open **Extensions → Extension Library...** then select Tinyfy's **Settings** tab.
 
-To configure global preferences, open **Extensions → Extension Library...** then select Tinyfy's **Preferences** tab.
-
-You can also configure preferences on a per-project basis in **Project → Project Settings...**
-
-<!--
-👋 That's it! Happy developing!
-
-P.S. If you'd like, you can remove these comments before submitting your extension 😉
--->
+- You can disable CSS or JS minification by unchecking the corresponding checkbox
+- You can change the filename extension of minified files by updating the **Output Suffix** text box
