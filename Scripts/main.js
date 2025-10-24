@@ -6,7 +6,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfier extension...");
+    console.log("Activating Tinyfy extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -163,7 +163,7 @@ function handleSave(editor) {
         if (syntax === "javascript") {
             const terserEnabled = nova.config.get("terser.enabled", "boolean") ?? true;
             if (!terserEnabled) {
-                console.log("Terser is disabled in settings.");
+                console.log("JS minification is disabled in settings.");
                 return;
             }
 
@@ -173,13 +173,13 @@ function handleSave(editor) {
                 return;
             }
 
-            minifyJS(filePath);
+            minifyJS(editor, filePath);
         }
         // Handle CSS files
         else if (syntax === "css") {
             const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
             if (!lightningEnabled) {
-                console.log("Lightning CSS is disabled in settings.");
+                console.log("CSS minification is disabled in settings.");
                 return;
             }
 
@@ -189,7 +189,7 @@ function handleSave(editor) {
                 return;
             }
 
-            minifyCSS(filePath);
+            minifyCSS(editor, filePath);
         }
     } catch (error) {
         console.error("Error in handleSave:", error);
@@ -198,7 +198,7 @@ function handleSave(editor) {
 }
 
 // Minify JavaScript using Terser
-async function minifyJS(inputPath) {
+async function minifyJS(editor, inputPath) {
     // Check if Terser is actually installed
     if (!dependencies.terser) {
         console.error("Attempted to minify JS but Terser is not installed.");
@@ -249,17 +249,36 @@ async function minifyJS(inputPath) {
         console.log(`${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`);
 
     } catch (error) {
-        showNotification(
-            "minify-error",
-            "JS Minification Failed",
-            error.message
-        );
-        console.error("JS Minification failed:", error);
+        // Try to parse Terser error format: "Parse error at filename:line,col"
+        // Example: "Parse error at 0:114,5" where 0 is the filename, 114 is line, 5 is column
+        const parseErrorMatch = error.message.match(/Parse error at [^:]+:(\d+),(\d+)/i);
+
+        if (parseErrorMatch) {
+            const line = parseInt(parseErrorMatch[1], 10);
+            const column = parseInt(parseErrorMatch[2], 10);
+
+            // Try to jump to the error location in the editor
+            jumpToError(editor, line, column);
+
+            showNotification(
+                "minify-error",
+                "Error Parsing JavaScript",
+                `Check near line ${line}, column ${column} for the error.`
+            );
+            console.error(`JS Parse Error at line ${line}, column ${column}:`, error.message);
+        } else {
+            showNotification(
+                "minify-error",
+                "JS Minification Failed",
+                error.message
+            );
+            console.error("JS Minification failed:", error);
+        }
     }
 }
 
 // Minify CSS using Lightning CSS
-async function minifyCSS(inputPath) {
+async function minifyCSS(editor, inputPath) {
     // Check if Lightning CSS is actually installed
     if (!dependencies.lightningcss) {
         console.error("Attempted to minify CSS but Lightning CSS is not installed.");
@@ -318,12 +337,35 @@ async function minifyCSS(inputPath) {
         console.log(`${filename} processed in ${duration}ms (saved ${formatBytes(savedAmount)})`);
 
     } catch (error) {
-        showNotification(
-            "minify-error",
-            "CSS Minification Failed",
-            error.message
-        );
-        console.error("CSS Minification failed:", error);
+        // Try to parse Lightning CSS error format from Rust panic messages
+        // Example: ErrorLocation { filename: "main.css", line: 304, column: 2 }
+        const errorLocationMatch = error.message.match(/line:\s*(\d+),\s*column:\s*(\d+)/i);
+
+        if (errorLocationMatch) {
+            const line = parseInt(errorLocationMatch[1], 10);
+            const column = parseInt(errorLocationMatch[2], 10);
+
+            // Try to jump to the error location in the editor
+            jumpToError(editor, line, column);
+
+            // Try to extract the error kind for a better message
+            const errorKindMatch = error.message.match(/kind:\s*(\w+)\(/i);
+            const errorKind = errorKindMatch ? errorKindMatch[1] : "Parse Error";
+
+            showNotification(
+                "minify-error",
+                `Error Parsing CSS: ${errorKind}`,
+                `Check near line ${line}, column ${column} for the error.`
+            );
+            console.error(`CSS Error at line ${line}, column ${column}:`, error.message);
+        } else {
+            showNotification(
+                "minify-error",
+                "CSS Minification Failed",
+                error.message
+            );
+            console.error("CSS Minification failed:", error);
+        }
     }
 }
 
@@ -368,6 +410,26 @@ function runMinifier(args, content, toolName) {
 
         process.start();
     });
+}
+
+// Jump to a specific line and column in the editor
+function jumpToError(editor, line, column) {
+    // Terser uses 0-based line numbers, so we use them directly
+    const lines = editor.document.getTextInRange(new Range(0, editor.document.length)).split('\n');
+
+    // Calculate the character position in the document
+    let position = 0;
+    for (let i = 0; i < Math.min(line, lines.length); i++) {
+        position += lines[i].length + 1; // +1 for newline character
+    }
+    position += column;
+
+    // Ensure position doesn't exceed document length
+    position = Math.min(position, editor.document.length);
+
+    // Select the error position and scroll to it
+    editor.selectedRange = new Range(position, position);
+    editor.scrollToPosition(position);
 }
 
 exports.deactivate = function() {
