@@ -10,6 +10,7 @@ Tested with Nova 13.3 on macOS Sequoia 15.7.1
 
 - Automatically checks for Node, Terser, and Lightning CSS on activation, and prompts for installation if needed
 - Shows the time taken and how many bytes were saved during minification
+- Alerts you when an error occurs parsing a file and will try to jump the editor to the line and column of the error
 - Alerts you when minification is skipped for remote files
 - Lets you disable CSS and JS minification separately
 - Allows you to customise the minified file extension (e.g. `.min.js`  or `.min.css`)
