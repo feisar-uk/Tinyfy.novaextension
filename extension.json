@@ -3,7 +3,7 @@
     "name": "Tinyfy",
     "organization": "Feisar",
     "description": "Automatically minify local CSS & JS files on save using Lightning CSS and Terser.",
-    "version": "1.0",
+    "version": "1.1",
     "categories": ["formatters"],
     "repository": "https://github.com/feisar-uk/Tinyfy.novaextension",
     "bugs": "https://github.com/feisar-uk/Tinyfy.novaextension/issues",
