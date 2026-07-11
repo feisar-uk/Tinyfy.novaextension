@@ -1,10 +1,10 @@
-# Tinyfy Extension for Nova
+# Tinyfy Extension for Nova v1.3
 
 **Tinyfy** is an extension for the [Nova](https://nova.app) code editor from [Panic](https://panic.com), that  automatically minifies local `.js` and `.css` files on save, using [Terser](https://terser.org) for JS minification and [Lightning CSS](https://lightningcss.dev) for CSS minification.
 
 Terser and Lightning CSS are both up-to-date and supported CLI tools. Alternatives such as `uglifycss`, `csso` and `uglify-js` are deprecated.
 
-Tested with Nova 13.3 on macOS Sequoia 15.7.1
+Tested with Nova 13.x on macOS Sequoia 15.7.x
 
 ## Features
 
@@ -12,7 +12,7 @@ Tested with Nova 13.3 on macOS Sequoia 15.7.1
 - Shows the time taken and how many bytes were saved during minification
 - Alerts you when an error occurs parsing a file and will try to jump the editor to the line and column of the error
 - Alerts you when minification is skipped for remote files
-- Lets you disable CSS and JS minification separately
+- Lets you disable JS and CSS minification separately
 - Allows you to customise the minified file extension (e.g. `.min.js`  or `.min.css`)
 - Skips files that are already minified
 - Provides detailed logging in the Extension Console for every action
@@ -47,7 +47,7 @@ From the command line, enter:
 
 `npm install terser -g`
 
-### Installing Tinify
+### Installing Tinyfy
 
 - Relaunch Nova after installing Node, Terser and Lightning CSS
 - In Nova, navigate to **Extensions > Extension Library...**
@@ -64,5 +64,9 @@ You can tweak the file extension or turn off minification entirely in the Extens
 
 To configure global settings, open **Extensions → Extension Library...** then select Tinyfy's **Settings** tab.
 
-- You can disable CSS or JS minification by unchecking the corresponding checkbox
+- You can disable JS or CSS minification by unchecking the corresponding checkbox
 - You can change the filename extension of minified files by updating the **Output Suffix** text box
+
+### Limitations
+
+The Nova Extensions API does not allow creating or manipulating remote files for security reasons, therefore Tinyfy cannot minify remote files. When saving a remote JS or CSS file Tinyfy will notify you that minification has been skipped.

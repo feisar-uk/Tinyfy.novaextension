@@ -1,3 +1,5 @@
+/* global exports, nova, Process, NotificationRequest, Range */
+
 // Track which dependencies are actually available
 const dependencies = {
     npm: false,
@@ -6,7 +8,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfy extension...");
+    console.log("Activating Tinyfy 1.3 extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -148,22 +150,11 @@ function handleSave(editor) {
             return;
         }
 
-        // Check if file is remote and skip processing
-        if (isRemoteFile(filePath)) {
-            showNotification(
-                "remote-file-unsupported",
-                "Minification Skipped",
-                `Cannot process remote file: ${nova.path.basename(filePath)}.\nOnly local files are supported.`
-            );
-            console.log(`Skipping minification for remote file: ${filePath}`);
-            return;
-        }
-
         // Handle JavaScript files
         if (syntax === "javascript") {
             const terserEnabled = nova.config.get("terser.enabled", "boolean") ?? true;
             if (!terserEnabled) {
-                console.log("JS minification is disabled in settings.");
+                console.log("JS minification is disabled in Tinyfy settings.");
                 return;
             }
 
@@ -173,19 +164,31 @@ function handleSave(editor) {
                 return;
             }
 
+            // Check if file is remote and skip processing
+            if (isRemoteFile(filePath)) {
+                console.log(`Skipping minification for remote JS file: ${filePath}`);
+                return;
+            }
+
             minifyJS(editor, filePath);
         }
         // Handle CSS files
         else if (syntax === "css") {
             const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
             if (!lightningEnabled) {
-                console.log("CSS minification is disabled in settings.");
+                console.log("CSS minification is disabled in Tinyfy settings.");
                 return;
             }
 
             // Skip already minified files
             if (filePath.endsWith(".min.css")) {
                 console.log("Skipping already minified CSS file.");
+                return;
+            }
+
+            // Check if file is remote and skip processing
+            if (isRemoteFile(filePath)) {
+                console.log(`Skipping minification for remote CSS file: ${filePath}`);
                 return;
             }
 
@@ -414,14 +417,16 @@ function runMinifier(args, content, toolName) {
 
 // Jump to a specific line and column in the editor
 function jumpToError(editor, line, column) {
-    // Terser uses 0-based line numbers, so we use them directly
+    // Terser uses 1-based line numbers and 0-based column numbers
     const lines = editor.document.getTextInRange(new Range(0, editor.document.length)).split('\n');
 
     // Calculate the character position in the document
     let position = 0;
-    for (let i = 0; i < Math.min(line, lines.length); i++) {
+    // line is 1-based, so we go up to line-1
+    for (let i = 0; i < Math.min(line - 1, lines.length); i++) {
         position += lines[i].length + 1; // +1 for newline character
     }
+    // column is 0-based, add it directly
     position += column;
 
     // Ensure position doesn't exceed document length
