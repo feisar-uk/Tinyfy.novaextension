@@ -1,4 +1,4 @@
-# Tinyfy Extension for Nova v1.3
+# Tinyfy Extension for Nova v1.4
 
 **Tinyfy** is an extension for the [Nova](https://nova.app) code editor from [Panic](https://panic.com), that  automatically minifies local `.js` and `.css` files on save, using [Terser](https://terser.org) for JS minification and [Lightning CSS](https://lightningcss.dev) for CSS minification.
 
@@ -10,9 +10,11 @@ Tested with Nova 13.x on macOS Sequoia 15.7.x
 
 - Automatically checks for Node, Terser, and Lightning CSS on activation, and prompts for installation if needed
 - Shows the time taken and how many bytes were saved during minification
-- Alerts you when an error occurs parsing a file and will try to jump the editor to the line and column of the error
+- Alerts you when an error occurs parsing a file and attempts to jump the editor to the line and column of the error
 - Alerts you when minification is skipped for remote files
 - Lets you disable JS and CSS minification separately
+- Checkboxes for common Terser and Lightning CSS flags in the extension Settings
+- Additional flags can be appended via a string setting in the extension Settings
 - Allows you to customise the minified file extension (e.g. `.min.js`  or `.min.css`)
 - Skips files that are already minified
 - Provides detailed logging in the Extension Console for every action
@@ -66,6 +68,7 @@ To configure global settings, open **Extensions → Extension Library...** then 
 
 - You can disable JS or CSS minification by unchecking the corresponding checkbox
 - You can change the filename extension of minified files by updating the **Output Suffix** text box
+- Both minifiers expose their most common options as simple toggles in Settings (e.g. compress/mangle for Terser, nesting/custom-media for Lightning CSS), plus a free-text field for any additional CLI flags not covered by those toggles - giving full control without needing new settings for every possible option.
 
 ### Limitations
 

@@ -1,7 +1,14 @@
+## Version 1.4 (19th July 2026)
+
+- Added configurable Terser flags (thanks [mbeekhuis](https://github.com/mbeekhuis))
+- Added option to remove the trailing newline Terser's CLI appends to minified output (thanks [mbeekhuis](https://github.com/mbeekhuis))
+- Added configurable Lightning CSS flags
+- Now logs the full CLI invocation for each minifier to the Extension Console
+
 ## Version 1.3 (11th July 2026)
 
 - Code optimisations and enhancements
-- Fix possible issue of extension not always activating
+- Fix extension not activating for CSS files if a JS file is not present (thanks [swinggraphics](https://github.com/swinggraphics))
 
 ## Version 1.2 (2nd January 2026)
 

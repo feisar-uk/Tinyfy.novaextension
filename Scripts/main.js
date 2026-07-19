@@ -8,7 +8,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfy 1.3 extension...");
+    console.log("Activating Tinyfy 1.4 extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -176,7 +176,7 @@ function handleSave(editor) {
         else if (syntax === "css") {
             const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
             if (!lightningEnabled) {
-                console.log("CSS minification is disabled in Tinyfy settings.");
+                console.log("CSS minification is disabled Tinyfy in settings.");
                 return;
             }
 
@@ -228,11 +228,36 @@ async function minifyJS(editor, inputPath) {
         const originalSize = content.length;
         const startTime = Date.now();
 
-        const minifiedContent = await runMinifier(
-            ["npx", "terser", "--compress", "--mangle"],
-            content,
-            "Terser"
-        );
+        // Build the Terser command dynamically based on settings
+        const terserArgs = ["npx", "terser"];
+
+        const enableCompress = nova.config.get("terser.enableCompress", "boolean") ?? true;
+        if (enableCompress) {
+            terserArgs.push("--compress");
+        }
+
+        const enableMangle = nova.config.get("terser.enableMangle", "boolean") ?? true;
+        if (enableMangle) {
+            terserArgs.push("--mangle");
+        }
+
+        // Append any additional user-specified flags (e.g. "--module --toplevel")
+        const additionalArgs = nova.config.get("terser.additionalArgs", "string") || "";
+        if (additionalArgs.trim().length > 0) {
+            // Split on whitespace; supports simple flags but not quoted values with spaces
+            const extraFlags = additionalArgs.trim().split(/\s+/);
+            terserArgs.push(...extraFlags);
+        }
+
+        let minifiedContent = await runMinifier(terserArgs, content, "Terser");
+
+        // (Command is logged inside runMinifier before execution)
+
+        // Terser's CLI appends a trailing newline; trim it if configured to do so
+        const trimOutput = nova.config.get("terser.trimOutput", "boolean") ?? true;
+        if (trimOutput) {
+            minifiedContent = minifiedContent.trim();
+        }
 
         // Write the minified output
         const outputFile = nova.fs.open(outputPath, "w");
@@ -301,10 +326,45 @@ async function minifyCSS(editor, inputPath) {
         const originalSize = originalStats.size;
         const startTime = Date.now();
 
+        // Build the Lightning CSS command dynamically based on settings
+        const lightningArgs = ["npx", "lightningcss", "--minify"];
+
+        const enableNesting = nova.config.get("lightningcss.enableNesting", "boolean") ?? false;
+        if (enableNesting) {
+            lightningArgs.push("--nesting");
+        }
+
+        const enableCustomMedia = nova.config.get("lightningcss.enableCustomMedia", "boolean") ?? false;
+        if (enableCustomMedia) {
+            lightningArgs.push("--custom-media");
+        }
+
+        const enableErrorRecovery = nova.config.get("lightningcss.enableErrorRecovery", "boolean") ?? false;
+        if (enableErrorRecovery) {
+            lightningArgs.push("--error-recovery");
+        }
+
+        const targets = nova.config.get("lightningcss.targets", "string") || "";
+        if (targets.trim().length > 0) {
+            lightningArgs.push("--targets", targets.trim());
+        }
+
+        // Append any additional user-specified flags (e.g. "--source-map --unused-symbols foo")
+        const additionalArgs = nova.config.get("lightningcss.additionalArgs", "string") || "";
+        if (additionalArgs.trim().length > 0) {
+            // Split on whitespace; supports simple flags but not quoted values with spaces
+            const extraFlags = additionalArgs.trim().split(/\s+/);
+            lightningArgs.push(...extraFlags);
+        }
+
+        lightningArgs.push(inputPath, "-o", outputPath);
+
+        console.log(`Running command: ${formatCommandForLog(lightningArgs)}`);
+
         // Lightning CSS requires file paths, not stdin
         await new Promise((resolve, reject) => {
             const process = new Process("/usr/bin/env", {
-                args: ["npx", "lightningcss", "--minify", inputPath, "-o", outputPath],
+                args: lightningArgs,
                 stdio: "pipe",
                 shell: false
             });
@@ -372,8 +432,15 @@ async function minifyCSS(editor, inputPath) {
     }
 }
 
+// Format an args array into a shell-safe display string for logging
+function formatCommandForLog(args) {
+    return args.map(arg => (/\s/.test(arg) ? `"${arg}"` : arg)).join(" ");
+}
+
 // Run a minifier process with stdin/stdout
 function runMinifier(args, content, toolName) {
+    console.log(`Running command: ${formatCommandForLog(args)}`);
+
     return new Promise((resolve, reject) => {
         const process = new Process("/usr/bin/env", {
             args: args,
