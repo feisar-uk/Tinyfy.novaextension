@@ -21,7 +21,7 @@ Tested with Nova 13.x on macOS Sequoia 15.7.x
 
 ## Screenshot
 
-![](https://www.feisar.uk/tinyfy/tinyfy.png)
+![](https://www.feisar.uk/tinyfy/tinyfy.png?2)
 
 ## Requirements
 
