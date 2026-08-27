@@ -1,3 +1,8 @@
+## Version 1.5 (27th August 2026)
+
+- Fixed an issue where minifying certain JavaScript files could hang indefinitely - Terser now reads and writes via file paths instead of piping the source through stdin (thanks [mbeekhuis](https://github.com/mbeekhuis))
+- Removed some redundant code
+
 ## Version 1.4 (19th July 2026)
 
 - Added configurable Terser flags (thanks [mbeekhuis](https://github.com/mbeekhuis))

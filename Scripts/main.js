@@ -8,7 +8,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfy 1.4 extension...");
+    console.log("Activating Tinyfy 1.5 extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -42,7 +42,6 @@ exports.activate = async function() {
                 "https://github.com/terser/terser?tab=readme-ov-file#install"
             );
         } else {
-            // Get the actual version with a separate command
             const versionCheck = await checkCommand("terser", ["--version"]);
             console.log(`Terser version ${versionCheck.version} is installed and enabled.`);
         }
@@ -63,7 +62,6 @@ exports.activate = async function() {
                 "https://lightningcss.dev/docs.html#from-the-cli"
             );
         } else {
-            // Get the actual version with a separate command
             const versionCheck = await checkCommand("lightningcss", ["--version"]);
             console.log(`Lightning CSS version ${versionCheck.version} is installed and enabled.`);
         }
@@ -140,6 +138,41 @@ function isRemoteFile(filePath) {
     }
 }
 
+// Format an args array into a shell-safe display string for logging
+function formatCommandForLog(args) {
+    return args.map(arg => (/\s/.test(arg) ? `"${arg}"` : arg)).join(" ");
+}
+
+// Run a file-based CLI process (input/output handled via file paths, not stdin/stdout)
+function runProcess(args) {
+    console.log(`Running command: ${formatCommandForLog(args)}`);
+
+    return new Promise((resolve, reject) => {
+        const process = new Process("/usr/bin/env", {
+            args: args,
+            stdio: "pipe",
+            shell: false
+        });
+
+        let stderrOutput = "";
+
+        process.onStderr((line) => {
+            stderrOutput += line;
+        });
+
+        process.onDidExit((status) => {
+            if (status === 0) {
+                resolve();
+            } else {
+                const errorMsg = stderrOutput.trim() || `Process exited with status ${status}`;
+                reject(new Error(errorMsg));
+            }
+        });
+
+        process.start();
+    });
+}
+
 // Handle file save events
 function handleSave(editor) {
     try {
@@ -176,7 +209,7 @@ function handleSave(editor) {
         else if (syntax === "css") {
             const lightningEnabled = nova.config.get("lightningcss.enabled", "boolean") ?? true;
             if (!lightningEnabled) {
-                console.log("CSS minification is disabled Tinyfy in settings.");
+                console.log("CSS minification is disabled in Tinyfy settings.");
                 return;
             }
 
@@ -217,19 +250,17 @@ async function minifyJS(editor, inputPath) {
     }
 
     try {
-        const fileContent = nova.fs.open(inputPath, "r");
-        const content = fileContent.read();
-        fileContent.close();
-
-        if (!content || content.length === 0) {
-            throw new Error("Input file is empty");
-        }
-
-        const originalSize = content.length;
+        const originalStats = nova.fs.stat(inputPath);
+        const originalSize = originalStats.size;
         const startTime = Date.now();
 
-        // Build the Terser command dynamically based on settings
-        const terserArgs = ["npx", "terser"];
+        // Build the Terser command dynamically based on settings.
+        // The input file is listed immediately after the command name, before any
+        // flags - Terser's --compress/--mangle flags accept an optional suboption
+        // string, so if the input path followed one of them directly, Terser could
+        // swallow it as that flag's value and end up with no input file at all,
+        // causing it to hang waiting on stdin.
+        const terserArgs = ["npx", "terser", inputPath];
 
         const enableCompress = nova.config.get("terser.enableCompress", "boolean") ?? true;
         if (enableCompress) {
@@ -249,24 +280,29 @@ async function minifyJS(editor, inputPath) {
             terserArgs.push(...extraFlags);
         }
 
-        let minifiedContent = await runMinifier(terserArgs, content, "Terser");
+        // --output always requires a value, so it's safe to place last
+        terserArgs.push("--output", outputPath);
 
-        // (Command is logged inside runMinifier before execution)
+        await runProcess(terserArgs);
 
         // Terser's CLI appends a trailing newline; trim it if configured to do so
         const trimOutput = nova.config.get("terser.trimOutput", "boolean") ?? true;
         if (trimOutput) {
-            minifiedContent = minifiedContent.trim();
+            const outputFile = nova.fs.open(outputPath, "r");
+            const outputContent = outputFile.read();
+            outputFile.close();
+
+            if (/[\r\n]+$/.test(outputContent)) {
+                const trimmedContent = outputContent.replace(/[\r\n]+$/, "");
+                const writeFile = nova.fs.open(outputPath, "w");
+                writeFile.write(trimmedContent);
+                writeFile.close();
+            }
         }
 
-        // Write the minified output
-        const outputFile = nova.fs.open(outputPath, "w");
-        outputFile.write(minifiedContent);
-        outputFile.close();
-
         const duration = Date.now() - startTime;
-        const minifiedSize = minifiedContent.length;
-        const savedAmount = originalSize - minifiedSize;
+        const minifiedStats = nova.fs.stat(outputPath);
+        const savedAmount = originalSize - minifiedStats.size;
         const filename = nova.path.basename(outputPath);
 
         showNotification(
@@ -359,33 +395,7 @@ async function minifyCSS(editor, inputPath) {
 
         lightningArgs.push(inputPath, "-o", outputPath);
 
-        console.log(`Running command: ${formatCommandForLog(lightningArgs)}`);
-
-        // Lightning CSS requires file paths, not stdin
-        await new Promise((resolve, reject) => {
-            const process = new Process("/usr/bin/env", {
-                args: lightningArgs,
-                stdio: "pipe",
-                shell: false
-            });
-
-            let stderrOutput = "";
-
-            process.onStderr((line) => {
-                stderrOutput += line;
-            });
-
-            process.onDidExit((status) => {
-                if (status === 0) {
-                    resolve();
-                } else {
-                    const errorMsg = stderrOutput.trim() || `Process exited with status ${status}`;
-                    reject(new Error(errorMsg));
-                }
-            });
-
-            process.start();
-        });
+        await runProcess(lightningArgs);
 
         const duration = Date.now() - startTime;
         const minifiedStats = nova.fs.stat(outputPath);
@@ -430,56 +440,6 @@ async function minifyCSS(editor, inputPath) {
             console.error("CSS Minification failed:", error);
         }
     }
-}
-
-// Format an args array into a shell-safe display string for logging
-function formatCommandForLog(args) {
-    return args.map(arg => (/\s/.test(arg) ? `"${arg}"` : arg)).join(" ");
-}
-
-// Run a minifier process with stdin/stdout
-function runMinifier(args, content, toolName) {
-    console.log(`Running command: ${formatCommandForLog(args)}`);
-
-    return new Promise((resolve, reject) => {
-        const process = new Process("/usr/bin/env", {
-            args: args,
-            stdio: "pipe",
-            shell: false
-        });
-
-        let stderrOutput = "";
-        let stdoutOutput = "";
-
-        const writer = process.stdin.getWriter();
-        writer.ready.then(() => {
-            writer.write(content);
-            writer.close();
-        });
-
-        process.onStdout((line) => {
-            stdoutOutput += line;
-        });
-
-        process.onStderr((line) => {
-            stderrOutput += line;
-        });
-
-        process.onDidExit((status) => {
-            if (status === 0) {
-                if (!stdoutOutput || stdoutOutput.length === 0) {
-                    reject(new Error(`${toolName} produced no output`));
-                } else {
-                    resolve(stdoutOutput);
-                }
-            } else {
-                const errorMsg = stderrOutput.trim() || `Process exited with status ${status}`;
-                reject(new Error(errorMsg));
-            }
-        });
-
-        process.start();
-    });
 }
 
 // Jump to a specific line and column in the editor
