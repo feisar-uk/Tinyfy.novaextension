@@ -8,7 +8,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfy 1.5 extension...");
+    console.log("Activating Tinyfy 1.6 extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -284,21 +284,6 @@ async function minifyJS(editor, inputPath) {
         terserArgs.push("--output", outputPath);
 
         await runProcess(terserArgs);
-
-        // Terser's CLI appends a trailing newline; trim it if configured to do so
-        const trimOutput = nova.config.get("terser.trimOutput", "boolean") ?? true;
-        if (trimOutput) {
-            const outputFile = nova.fs.open(outputPath, "r");
-            const outputContent = outputFile.read();
-            outputFile.close();
-
-            if (/[\r\n]+$/.test(outputContent)) {
-                const trimmedContent = outputContent.replace(/[\r\n]+$/, "");
-                const writeFile = nova.fs.open(outputPath, "w");
-                writeFile.write(trimmedContent);
-                writeFile.close();
-            }
-        }
 
         const duration = Date.now() - startTime;
         const minifiedStats = nova.fs.stat(outputPath);

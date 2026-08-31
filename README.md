@@ -1,4 +1,4 @@
-# Tinyfy Extension for Nova v1.5
+# Tinyfy Extension for Nova v1.6
 
 **Tinyfy** is an extension for the [Nova](https://nova.app) code editor from [Panic](https://panic.com), that  automatically minifies local `.js` and `.css` files on save, using [Terser](https://terser.org) for JS minification and [Lightning CSS](https://lightningcss.dev) for CSS minification.
 

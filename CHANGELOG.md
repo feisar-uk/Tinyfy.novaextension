@@ -1,3 +1,7 @@
+## Version 1.6 (31st August 2026)
+
+- Removed the now redundant code and Setting option to strip the trailing newline from the output since switching to file-based I/O (thanks [mbeekhuis](https://github.com/mbeekhuis))
+
 ## Version 1.5 (27th August 2026)
 
 - Fixed an issue where minifying certain JavaScript files could hang indefinitely - Terser now reads and writes via file paths instead of piping the source through stdin (thanks [mbeekhuis](https://github.com/mbeekhuis))
