@@ -59,13 +59,6 @@
                     "link": "https://terser.org/docs/cli-usage/#command-line-options",
                     "type": "string",
                     "default": ""
-                },
-                {
-                    "key": "terser.trimOutput",
-                    "title": "Trim Trailing Whitespace",
-                    "description": "Removes the trailing newline Terser's CLI appends to minified output",
-                    "type": "boolean",
-                    "default": true
                 }
             ]
         },
