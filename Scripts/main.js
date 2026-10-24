@@ -8,7 +8,7 @@ const dependencies = {
 };
 
 exports.activate = async function() {
-    console.log("Activating Tinyfy 1.6 extension...");
+    console.log("Activating Tinyfy 1.7 extension...");
 
     // STEP 1: Check if Node/NPM is installed
     const npmCheck = await checkCommand("npm", ["-v"]);
@@ -192,7 +192,7 @@ function handleSave(editor) {
             }
 
             // Skip already minified files
-            if (filePath.endsWith(".min.js")) {
+            if (/\.min\.m?js$/i.test(filePath)) {
                 console.log("Skipping already minified JS file.");
                 return;
             }
@@ -241,8 +241,14 @@ async function minifyJS(editor, inputPath) {
         return;
     }
 
-    const suffix = nova.config.get("terser.outputSuffix", "string") || ".min.js";
-    const outputPath = inputPath.replace(/\.js$/, suffix);
+    let suffix = nova.config.get("terser.outputSuffix", "string") || ".min.js";
+
+    // Keep the .mjs extension on the output (app.mjs -> app.min.mjs)
+    if (/\.mjs$/i.test(inputPath)) {
+        suffix = suffix.replace(/\.js$/, ".mjs");
+    }
+
+    const outputPath = inputPath.replace(/\.m?js$/i, suffix);
 
     if (inputPath === outputPath) {
         console.error("Input and output paths are the same. Aborting to prevent overwrite.");

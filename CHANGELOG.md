@@ -1,3 +1,7 @@
+## Version 1.7 (24th October 2026)
+
+- Adds support for `.mjs` Javascript module files (thanks [TheDigitalOrchard](https://github.com/TheDigitalOrchard))
+
 ## Version 1.6 (31st August 2026)
 
 - Removed the now redundant code and Setting option to strip the trailing newline from the output since switching to file-based I/O (thanks [mbeekhuis](https://github.com/mbeekhuis))
